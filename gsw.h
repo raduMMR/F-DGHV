@@ -18,6 +18,10 @@ class GSWParams
 
 public:
 
+	/*
+	@brief constructorul prin care se seteaza parametrii folositi de schema GSW
+	@warning distributia chi are o implementare neverificata ( dubioasa)
+	*/
 	GSWParams(int lambda, int L);
 
 	ZZ get_q()const
@@ -40,11 +44,17 @@ public:
 		return m;
 	}
 
+	/*
+	@brief metoda prin care se verifica daca parametrii au fost initializati
+	*/
 	bool get_setup_state()const
 	{
 		return setup_completed;
 	}
 
+	/*
+	@brief returneaza un vector de element potrivit unei distributii chi
+	*/
 	vector<ZZ> sampleFromChiDistribution()const;
 
 	vector<ZZ> get_v()const
@@ -56,7 +66,6 @@ public:
 
 	void set_v(vector<ZZ> vec);
 };
-
 
 /*
 @brief genereaza cheia secreta sub forma unui vector t de lungime n
