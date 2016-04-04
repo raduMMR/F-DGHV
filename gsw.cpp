@@ -6,11 +6,15 @@ GSWParams::GSWParams(int lambda, int L)
 {
 	n = lambda*L;
 
-	RandomBits(q, lambda*L);
+	// RandomBits(q, lambda*L);
+	do
+	{
+		RandomBits(q, 4);
+	} while (q == 0 );
 
-	int qp;
-	conv(qp, q);
-	log_q = 0;
+
+	ZZ qp = q;
+
 	while (qp != 0)
 	{
 		log_q++;
@@ -40,16 +44,15 @@ vector<ZZ> GSWParams::sampleFromChiDistribution()const
 	vector<ZZ> error;
 
 	ZZ_p::init(chi_Bound);
-	int l = log_q + 1;
 	ZZ e_i;
 
-	for (int i = 0; i < l; i++)
+	for (int i = 0; i < m; i++)
 	{
 		conv(e_i, random_ZZ_p());
 		error.push_back(e_i);
 	}
 
-	assert(error.size() != 0);
+	assert(error.size() == m);
 	return error;
 }
 
@@ -116,7 +119,7 @@ void PublicKeyGen(GSWParams params, vector<ZZ> t, vector<vector<ZZ> > &A)
 	int n = params.get_n();
 	int m = params.get_m();
 	ZZ q = params.get_q();
-	vector<vector<ZZ> > B = GenerateMatrix(n, m, q);
+	vector<vector<ZZ> > B = GenerateMatrix(m, n, q);
 
 	vector<ZZ> b;
 	ZZ b_i;
@@ -138,16 +141,25 @@ void PublicKeyGen(GSWParams params, vector<ZZ> t, vector<vector<ZZ> > &A)
 	for (int i = 0; i < m; i++)
 	{
 		b[i] = b[i] + error[i];
+		b[i] = b[i] % q;
 	}
 
 	// set A = (b | B)
 	// A[0] = prima coloana, adica b
 
-	A.push_back(b);
+	vector<ZZ> linie_A;
 
-	for (int i = 0; i < n; i++)
+	for (int i = 0; i < m; i++)
 	{
-		A.push_back(B[i]);
+		linie_A.push_back(b[i]);
+		for (int j = 0; j < n; j++)
+		{
+			linie_A.push_back(B[i][j]);
+		}
+
+		A.push_back(linie_A);
+
+		linie_A.clear();
 	}
 
 }
@@ -159,15 +171,25 @@ vector<vector<ZZ> > Enc(GSWParams params, vector<vector<ZZ> > pk, int miu)
 	ZZ q = params.get_q();
 
 	int l = params.get_log_q() + 1;
-	int N = (n + 1)*l;
+	int N = (n + 1);
 
 	vector<vector<ZZ> > R = GenerateMatrix(N, m, ZZ(2));
 
-	vector<vector<ZZ> > C_prim = BitDecomp(matrixMult(R, pk), l);
+	vector<vector<ZZ> > C_prim = BitDecomp(matrixMult(R, pk, q), l);
 
 	for (int i = 0; i < N; i++)
 	{
 		C_prim[i][i] = C_prim[i][i] + miu;
+	}
+
+	cout << "C_prim" << endl;
+	for (int i = 0; i < C_prim.size(); i++)
+	{
+		for (int j = 0; j < C_prim[0].size(); j++)
+		{
+			cout << C_prim[i][j] << " ";
+		}
+		cout << endl;
 	}
 
 	vector<vector<ZZ> > C;
@@ -202,11 +224,20 @@ vector<ZZ> binary_representation(ZZ a, int l)
 	vector<ZZ> bin_rep;
 	ZZ rest;
 
+	// cout << "a =" << a << endl;
+	// cout << "l = " << l << endl;
+
 	for (int i = 0; i < l; i++)
 	{
 		rest = a % 2;
 		bin_rep.push_back(rest);
 		a = a / 2;
+	}
+
+	if (a != 0 )
+	{
+		cout << "a =" << a << endl;
+		cout << "l = " << l << endl;
 	}
 
 	assert(a == 0);		// daca a nu este egal cu 0 inseamna ca a 
@@ -219,13 +250,23 @@ vector<vector<ZZ> > BitDecomp(vector<vector<ZZ> > A, int l)
 {
 	vector<vector<ZZ> > bitdecomp_A;
 	vector<ZZ> a_i;
-
+	
 	for (int i = 0; i < A.size(); i++)
 	{
+		vector<ZZ> a_i_l;
+		bitdecomp_A.push_back(a_i_l);
+
 		for (int j = 0; j < A[i].size(); j++)
 		{
 			a_i = binary_representation(A[i][j], l);
 			assert(a_i.size() == l);
+
+			/*for (int i = 0; i < l; i++)
+			{
+				cout << "a_i[" << i << "] = " << a_i[i] << endl;
+			}*/
+
+			
 			for (int k = 0; k < l; k++)
 			{
 				bitdecomp_A[i].push_back(a_i[k]);
@@ -258,6 +299,9 @@ vector<vector<ZZ> > BitDecomp_1(vector<vector<ZZ> > A, int l)
 
 	for (int i = 0; i < A.size(); i++)
 	{
+		vector<ZZ> linie;
+		inv_bitdec.push_back(linie);
+
 		for (int j = 0; j < A[i].size(); j+=l)
 		{
 			assert((j + l) <= A[i].size());
@@ -332,21 +376,26 @@ vector<vector<ZZ> > GenerateMatrix(int n, int m, ZZ modulus_q)
 	vector<vector<ZZ> > R;
 
 	ZZ_p::init(modulus_q);
-	ZZ R_i;
+	// cout << "q = " << modulus_q << endl;
+
+	ZZ R_i_j;
 
 	for (int i = 0; i < n; i++)
 	{
+		vector<ZZ> R_i;
+		R.push_back(R_i);
+
 		for (int j = 0; j < m; j++)
 		{
-			conv(R_i, random_ZZ_p());
-			R[i].push_back(R_i);
+			conv(R_i_j, random_ZZ_p());
+			R[i].push_back(R_i_j);
 		}
 	}
 
 	return R;
 }
 
-vector<vector<ZZ> > matrixMult(vector<vector<ZZ> > M1, vector<vector<ZZ> > M2)
+vector<vector<ZZ> > matrixMult(vector<vector<ZZ> > M1, vector<vector<ZZ> > M2, ZZ q)
 {
 	assert(M1[0].size() == M2.size());
 	assert(M1.size() != 0);
@@ -361,6 +410,8 @@ vector<vector<ZZ> > matrixMult(vector<vector<ZZ> > M1, vector<vector<ZZ> > M2)
 
 	for (int i = 0; i < linii; i++)
 	{
+		vector<ZZ> linie;
+		produs.push_back(linie);
 		for (int j = 0; j < linii; j++)
 		{
 			elem = 0;
@@ -369,10 +420,19 @@ vector<vector<ZZ> > matrixMult(vector<vector<ZZ> > M1, vector<vector<ZZ> > M2)
 				elem += M1[j][k] * M2[k][j];
 			}
 
+			elem = elem % q;
 			produs[i].push_back(elem);	// produs[i][j] = elem
 		}
 	}
 
+	/*for (int i = 0; i < M1.size(); i++)
+	{
+		for (int j = 0; j < M2[0].size(); j++)
+		{
+			cout << produs[i][j] << " ";
+		}
+		cout << endl;
+	}*/
 
 	return produs;
 }
