@@ -54,6 +54,7 @@ public:
 
 	/*
 	@brief returneaza un vector de element potrivit unei distributii chi
+			vectorul are lungimea m
 	*/
 	vector<ZZ> sampleFromChiDistribution()const;
 
@@ -133,7 +134,7 @@ vector<vector<ZZ> > GenerateMatrix(int n, int m, ZZ modulus_q);
 @brief inmultire a doua matrici
 TODO : imbunatatirea inmultirii cu metoda Coppersmith
 */
-vector<vector<ZZ> > matrixMult(vector<vector<ZZ> > M1, vector<vector<ZZ> > M2);
+vector<vector<ZZ> > matrixMult(vector<vector<ZZ> > M1, vector<vector<ZZ> > M2, ZZ q);
 
 /*
 @brief adunare de matrici

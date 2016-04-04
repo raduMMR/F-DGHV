@@ -59,24 +59,56 @@ void test_gsw_scheme()
 	// afisare parametrii
 	cout << "q = " << gswParams.get_q() << endl;
 	cout << "log_q = " << gswParams.get_log_q() << endl;
-	cout << "n = " << gswParams.get_n() << endl;
+	/*cout << "n = " << gswParams.get_n() << endl;
 	cout << "m = " << gswParams.get_m() << endl;
 	cout << "setup_completed = " << gswParams.get_setup_state() << endl;
 
-	cout << "Testare distributie chi\n";
+	cout << "____________________________________________________";
+	cout << "\nTestare distributie chi\n";
 	vector<ZZ> chi_vec = gswParams.sampleFromChiDistribution();
 
+	cout << "chi_vec.size = " << chi_vec.size() << endl;
 	for (int i = 0; i < chi_vec.size(); i++)
 	{
 		cout << "v[" << i << "] = " << chi_vec[i] << endl;
 	}
+	cout << "____________________________________________________";*/
 
+	vector<ZZ> t;
+	vector<ZZ> sk;
+	vector<ZZ> v;
+
+	SecretKeyGen(gswParams, t, sk, v);
+	gswParams.set_v(v);
+
+	vector<vector<ZZ> > A;
+	PublicKeyGen(gswParams, t, A);
+
+	int message = 0;
+	int miu = 1;
+	vector<vector<ZZ> > C;
+
+	C = Enc(gswParams, A, message);
+	miu = Dec(gswParams, sk, C);
+
+	if (message != miu)
+	{
+		cout << "Eroare la decriptare.\n";
+	}
+	else
+	{
+		cout << "Decriptare CORECTA.\n";
+	}
+
+
+	cout << "Fini avec TEST_GSW\n";
 
 }
 
 int main()
 {
-	test_DGHV_scheme();
+	// test_DGHV_scheme();
+	
+	test_gsw_scheme();
 
-	// test_gsw_scheme();
 }
