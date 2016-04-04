@@ -38,6 +38,10 @@ void test_DGHV_scheme()
 			cout << "Eroare la iteratia " << i << ", m = " << message
 				<< ", miu = " << miu << endl;
 		}
+		else
+		{
+			cout << "Iteratia = " << i << " trecuta cu succes.\n";
+		}
 	}
 
 
@@ -46,6 +50,27 @@ void test_DGHV_scheme()
 
 void test_gsw_scheme()
 {
+	int lambda = 5;
+	int L = 5;
+
+	GSWParams gswParams(lambda, L);
+
+
+	// afisare parametrii
+	cout << "q = " << gswParams.get_q() << endl;
+	cout << "log_q = " << gswParams.get_log_q() << endl;
+	cout << "n = " << gswParams.get_n() << endl;
+	cout << "m = " << gswParams.get_m() << endl;
+	cout << "setup_completed = " << gswParams.get_setup_state() << endl;
+
+	cout << "Testare distributie chi\n";
+	vector<ZZ> chi_vec = gswParams.sampleFromChiDistribution();
+
+	for (int i = 0; i < chi_vec.size(); i++)
+	{
+		cout << "v[" << i << "] = " << chi_vec[i] << endl;
+	}
+
 
 }
 
