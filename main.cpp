@@ -1,13 +1,14 @@
 #include "utilities.h"
 #include "gsw.h"
+#include "BatchGSW.h"
 
 void test_DGHV_scheme()
 {
 	// lambda - paramentrul reprezentand securitatea
 	int lambda = 4;
 
-	int gamma = pow(lambda, 3);	// gamma = O(lambda^5)
-	int eta = pow(lambda, 1.5);	// eta = O(lamda^2)
+	int gamma = (int)pow(lambda, 3);	// gamma = O(lambda^5)
+	int eta = (int)pow(lambda, 1.5);	// eta = O(lamda^2)
 	int ro = lambda; 
 	int ro_prim = 2 * lambda;
 	int tau = gamma + lambda;
@@ -105,10 +106,27 @@ void test_gsw_scheme()
 
 }
 
+void test_batching_gsw()
+{
+	BatchGSW batchGSW;
+
+	int **C;
+	int message;
+
+	message = 0;
+
+	C = batchGSW.GSW_Encrypt(message);
+
+	cout << "mesaj : " << message << endl;
+	cout << "decript : " << batchGSW.GSW_Decrypt(C) << endl;
+
+}
+
 int main()
 {
 	// test_DGHV_scheme();
 	
-	test_gsw_scheme();
+	// test_gsw_scheme();
 
+	test_batching_gsw();
 }
