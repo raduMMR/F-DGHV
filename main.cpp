@@ -108,17 +108,61 @@ void test_gsw_scheme()
 
 void test_batching_gsw()
 {
-	BatchGSW batchGSW;
+	// lambda - paramentrul reprezentand securitatea
+	int lambda = 4;
+
+	int gamma = (int)pow(lambda, 3);	// gamma = O(lambda^5)
+	int eta = (int)pow(lambda, 1.5);	// eta = O(lamda^2)
+	int ro = lambda;
+	int ro_prim = 2 * lambda;
+	int tau = gamma + lambda;
+
+	Params::set_params(gamma, eta, ro, tau, ro_prim);
+
+	ZZ sk;
+	vector<ZZ> pk;
+	ZZ c;
+
+	long x_0;
+	long enc_0;
+
+	generate_keys(sk, pk);
+	c = encrypt_integer(pk, ZZ(0));
+	conv(x_0, pk[0]);
+	conv(enc_0, c);
+
+#ifdef _TEST
+	x_0 = 30;
+	enc_0 = 22;
+	// cout << "x_0 = " << x_0 << endl;
+	// cout << "enc_0 = " << enc_0 << endl
+#endif // _TEST
+	
+	BatchGSW batchGSW(x_0, enc_0);
 
 	int **C;
-	int message;
+	int message = 1;
+	long dghv_ctxt = 0;
+	long dghv_sk = 0;
+	int miu = -1;
 
-	message = 0;
+	conv(dghv_sk, sk);
 
-	C = batchGSW.GSW_Encrypt(message);
+	for (int i = 0; i < 10; i++)
+	{
+		message = rand() % 2;
+		// cout << "mesaj : " << message << endl;
+		C = batchGSW.GSW_Encrypt(message);
+		dghv_ctxt = batchGSW.GSW_Decrypt(C);
+		miu = dghv_ctxt % dghv_sk % 2;
+		// cout << "miu : " << miu << endl;
+		if (message != miu)
+		{
+			cout << "Eroare la iteratia " << i << endl;
+		}
+	}
 
-	cout << "mesaj : " << message << endl;
-	cout << "decript : " << batchGSW.GSW_Decrypt(C) << endl;
+	cout << "Final teste F-DGHV\n\n";
 
 }
 
@@ -130,3 +174,37 @@ int main()
 
 	test_batching_gsw();
 }
+
+
+
+
+
+// testare Flattening
+/*
+int *A[6];
+for (int i = 0; i < 6; i++)
+{
+A[i] = new int[6];
+for (int j = 0; j < 6; j++)
+{
+A[i][j] = 1;
+}
+A[i][i] = 1;
+}
+
+C = batchGSW.Flatten(A, 6);
+
+for (int i = 0; i < 6; i++)
+{
+for (int j = 0; j < 6; j++)
+{
+cout << C[i][j] << " ";
+}
+cout << endl;
+
+delete[] A[i];
+delete[] C[i];
+}
+delete[] C;
+
+cout << endl;*/
