@@ -2,71 +2,37 @@
 #include <assert.h>
 #include <time.h>
 
-template<T>
-T *aloca_memorie(int dim)
+BatchGSW::BatchGSW(long x_0, long enc_0)
 {
-	T* vector;
-	try
-	{
-		vector = new T[dim];
-	}
-	catch (bad_alloc& ba)
-	{
-		cerr << "bad alloc caught: " << ba.what() << endl;
-	}
+	assert(x_0 != 0);
 
-	return vector;
-}
-
-BatchGSW::BatchGSW()
-{
 	l = 0;
 	v = NULL;
+
+	this->x_0 = x_0;
+	this->enc_0 = enc_0;
+
+	while (x_0 != 0)
+	{
+		l++;
+		x_0 = x_0 / 2;
+	}
+
+	l += 2;
+
 	int unu[] = { 1 };
 	v = PowersOf2(unu, 1);
 
-	// lambda - paramentrul reprezentand securitatea
-	lambda = 10;
-
-	// parametrii schemei de criptare simetrica DGHV
-	int gamma = pow(lambda, 5);	
-	int eta = pow(lambda, 2);	
-	int ro_prim = 2 * lambda;
-
-	long q;
-	long r;
-	long pow_of_2 = (long)pow((double)2, eta);
-
-	srand(time(NULL));
-	// genereaza cheia secreta
-	do
+#ifdef _TEST
+	cout << "log_x_0 + 1 = l = " << l << endl;
+	/*cout << "V = " << endl;
+	for (int i = 0; i < l; i++)
 	{
-		p = rand() % (long)pow((double)2, eta - 1);
-		p = p + pow_of_2; // sk apartine [ 2^(eta-1), 2^eta )
+		cout << "v[" << i << "] = " << v[i] << endl;
+	}*/
 
-	} while (p % 2 != 1);
+#endif
 
-	// genereaza q
-	q = rand() % (long)pow((double)2, gamma / p);
-
-	// genereaza zgomot pentru criptare
-	pow_of_2 = (long)pow((double)2, ro_prim+1);
-	r = rand() % pow_of_2;
-	pow_of_2 = (long)pow((double)2, ro_prim);
-	r = r - pow_of_2;
-
-	// cripteaza pe zero
-	enc_0 = p*q + 2 * r + 0;
-
-	// calculeaza l numarul de biti necesari reprezentarii criptarii lui l
-	long copy_enc_0 = enc_0;
-	do
-	{
-		l++;
-		copy_enc_0 /= 2;
-	} while (copy_enc_0 != 0);
-
-	l += 1;
 }
 
 BatchGSW::~BatchGSW()
@@ -91,23 +57,42 @@ int* BatchGSW::BitDecomp(int *a, int n)
 			bit = bit / 2;
 		}
 
-		assert(bit == 0);
+		// assert(bit == 0);
 	}
+
+#ifdef _TEST
+
+	cout << "\nBitDecomp\n";
+	for (int i = 0; i < n*l; i++)
+	{
+		cout << bitdecomp[i];
+		if ((i-5) % l == 0 )
+		{
+			cout << endl;
+		}	
+		else
+		{
+			cout << ", ";
+		}
+
+	}
+	cout << endl << endl;
+
+#endif // _DEBUG
+
 
 	return bitdecomp;
 }
 
 int** BatchGSW::matrix_BitDecomp(int **A, int m, int n)
 {
+	assert(m == l);
+
 	int **C = new int*[l];
+
 	for (int i = 0; i < l; i++)
 	{
-		C[i] = new int[l];
-	}
-
-	for (int i = 0; i < n; i++)
-	{
-		C[i] = BitDecomp(A[i], n);
+		C[i] = BitDecomp(A[i], 1);
 	}
 
 	return C;
@@ -115,9 +100,14 @@ int** BatchGSW::matrix_BitDecomp(int **A, int m, int n)
 
 int* BatchGSW::BitDecomp_1(int *a, int n)
 {
-	int *vec = new int[n];
+	assert(n != 0);
+	assert(n % l == 0);
+
+	int dim = n / l;
+
+	int *vec = new int[dim];
 	int two_pow = 1;
-	for (int i = 0; i < n; i++)
+	for (int i = 0; i < dim; i++)
 	{
 		vec[i] = 0;
 		two_pow = 1;
@@ -127,6 +117,16 @@ int* BatchGSW::BitDecomp_1(int *a, int n)
 			two_pow *= 2;
 		}
 	}
+
+#ifdef _TEST
+
+	cout << "BitDecomp_1\n";
+	for (int i = 0; i < dim; i++)
+	{
+		cout << vec[i] << ", ";
+	}
+
+#endif // _DEBUG
 
 	return vec;
 }
@@ -158,6 +158,18 @@ int* BatchGSW::PowersOf2(int *a, int n)
 		}
 	}
 
+#ifdef _TEST
+
+	cout << "\n\nPowersOf2 DEBUG\n";
+
+	for (int i = 0; i < n*l; i++)
+	{
+		cout << vec_pow2[i] << ", ";
+	}
+	cout << endl;
+
+#endif
+
 	return vec_pow2;
 }
 
@@ -175,11 +187,15 @@ int** BatchGSW::matrix_PowersOf2(int **A, int m, int n)
 
 int** BatchGSW::Flatten(int **A, int N)
 {
+	assert(A != NULL);
+	assert(N != 0);
+	assert(N % l == 0);
+
 	int **C = new int*[N];
 
 	for (int i = 0; i < N; i++)
 	{
-		C[i] = BitDecomp(BitDecomp_1(A[i], N), N);
+		C[i] = BitDecomp(BitDecomp_1(A[i], N), N/l);
 	}
 
 	return C;
@@ -188,10 +204,11 @@ int** BatchGSW::Flatten(int **A, int N)
 int** BatchGSW::GSW_Encrypt(int message)
 {
 	int **C = NULL;
+	int **C_prim = NULL;
 
 	try
 	{
-		C = new int*[l];
+		C_prim = new int*[l];
 	}
 	catch (bad_alloc& ba)
 	{
@@ -200,11 +217,14 @@ int** BatchGSW::GSW_Encrypt(int message)
 
 	for (int i = 0; i < l; i++)
 	{
-		C[i] = NULL;
+		C_prim[i] = NULL;
 		try
 		{
-			C[i] = new int[1];
-			C[i][0] = enc_0;
+			C_prim[i] = new int[1];
+			C_prim[i][0] = enc_0;
+#ifdef _PRINT
+			cout << C_prim[i][0] << endl;
+#endif
 		}
 		catch (bad_alloc& ba)
 		{
@@ -212,12 +232,42 @@ int** BatchGSW::GSW_Encrypt(int message)
 		}
 	}
 
+	C = matrix_BitDecomp(C_prim, l, 1);
+
+#ifdef _PRINT
+	cout << "\nBitDecomp( C_prim )\n\n";
+#endif
+
 	for (int i = 0; i < l; i++)
 	{
+#ifdef _PRINT
+		for (int j = 0; j < l; j++)
+		{
+			cout << C[i][j] << " ";
+		}
+		cout << endl;
+#endif
 		C[i][i] += message;
 	}
 
+#ifdef _PRINT
+	cout << endl << endl;
+#endif
+
 	C = Flatten(C, l);
+
+#ifdef _PRINT
+	cout << "\nCiphertext\n\n";
+	for (int i = 0; i < l; i++)
+	{
+		for (int j = 0; j < l; j++)
+		{
+			cout << C[i][j] << " ";
+		}
+		cout << endl;
+	}
+	cout << endl;
+#endif
 
 	return C;
 }

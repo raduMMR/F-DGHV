@@ -4,17 +4,19 @@
 #include <vector>
 using namespace std;
 
+// #define _DEBUG
+// #define _PRINT
+
 class BatchGSW
 {
 	int *v;		// v = PowersOf2(1) cu coeficienti { 2^i : i = [1,l-1] }
 	int l;		// l = [ log x_0 ] + 1
 
 	long enc_0; 
-	long p;
-	int lambda;
+	long x_0;
 
 public:
-	BatchGSW();
+	BatchGSW(long x_0, long enc_0);
 
 	~BatchGSW();
 
@@ -37,3 +39,22 @@ public:
 	int GSW_Decrypt(int **C);
 
 };
+
+
+
+
+// functi ajutatoare
+/*template<T>T *aloca_memorie(int dim)
+{
+	T* vector;
+	try
+	{
+		vector = new T[dim];
+	}
+	catch (bad_alloc& ba)
+	{
+		cerr << "bad alloc caught: " << ba.what() << endl;
+	}
+
+	return vector;
+}*/
