@@ -283,3 +283,41 @@ int BatchGSW::GSW_Decrypt(int **C)
 
 	return enc_miu;
 }
+
+
+
+// functii ajutatoare
+int** matrix_mult(int **A, int **B, int l)
+{
+	int **M = new int*[l];
+	for (int i = 0; i < l; i++)
+	{
+		M[i] = new int[l];
+		for (int j = 0; j < l; j++)
+		{
+			M[i][j] = 0;
+			for (int k = 0; k < l; k++)
+			{
+				M[i][j] += A[i][k] * B[k][j];
+			}
+		}
+	}
+
+	return M;
+}
+
+int **matrix_add(int **A, int **B, int l)
+{
+	int **M = new int*[l];
+
+	for (int i = 0; i < l; i++)
+	{
+		M[i] = new int[l];
+		for (int j = 0; j < l; j++)
+		{
+			M[i][j] = A[i][j] + B[i][j];
+		}
+	}
+
+	return M;
+}

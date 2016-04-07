@@ -38,12 +38,22 @@ public:
 
 	int GSW_Decrypt(int **C);
 
+	int get_l()const
+	{
+		return l;
+	}
+
 };
 
 
 
 
 // functi ajutatoare
+
+int** matrix_mult(int **A, int **B, int l);
+
+int **matrix_add(int **A, int **B, int l);
+
 /*template<T>T *aloca_memorie(int dim)
 {
 	T* vector;
