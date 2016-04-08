@@ -35,10 +35,27 @@ BatchGSW::BatchGSW(long x_0, long enc_0)
 #endif
 
 	// batching secret keys
-	batch_v = new int*[l];
+	try
+	{
+		batch_v = new int*[l];
+	}
+	catch (bad_alloc& ba)
+	{
+		cerr << "bad alloc caught: " << ba.what() << endl;
+	}
+
 	for (int i = 0; i < l; i++)
 	{
 		batch_v[i] = batch_PowersOf2(unu, 1, i);
+
+#ifdef _PRINT
+		cout << "v[" << i << "]={";
+		for (int j = 0; j < l; j++)
+		{
+			cout << batch_v[i][j] << " ,";
+		}
+		cout << "}\n";
+#endif
 	}
 
 }
@@ -308,6 +325,13 @@ int** BatchGSW::GSW_Encrypt(int message)
 	cout << endl;
 #endif
 
+	// cleanup memory
+	for (int i = 0; i < l; i++)
+	{
+		delete[] C_prim[i];
+	}
+	delete[] C_prim;
+
 	return C;
 }
 
@@ -372,47 +396,23 @@ int** BatchGSW::batch_GSW_Enc(int *message)
 	{
 		C_prim[i] = new int[1];
 		C_prim[i][0] = enc_0;
-#ifdef _PRINT
-			cout << C_prim[i][0] << endl;
-#endif
 	}
 
 	C = matrix_BitDecomp(C_prim, l, 1);
 
-#ifdef _PRINT
-	cout << "\nBitDecomp( C_prim )\n\n";
-#endif
-
 	for (int i = 0; i < l; i++)
 	{
-#ifdef _PRINT
-		for (int j = 0; j < l; j++)
-		{
-			cout << C[i][j] << " ";
-		}
-		cout << endl;
-#endif
 		C[i][i] += message[i];
 	}
 
-#ifdef _PRINT
-	cout << endl << endl;
-#endif
-
 	C = Flatten(C, l);
 
-#ifdef _PRINT
-	cout << "\nCiphertext\n\n";
+	// cleanup
 	for (int i = 0; i < l; i++)
 	{
-		for (int j = 0; j < l; j++)
-		{
-			cout << C[i][j] << " ";
-		}
-		cout << endl;
+		delete[] C_prim[i];
 	}
-	cout << endl;
-#endif
+	delete[] C_prim;
 
 	return C;
 }
@@ -463,11 +463,11 @@ int* BatchGSW::batch_BitDecomp_1(int *a, int n, int shift)
 	int two_pow = 1;
 	for (int i = 0, k=shift; i < dim; i++, k=(k+1)%n)
 	{
-		vec[k] = 0;
+		vec[k/l] = 0;
 		two_pow = 1;
 		for (int j = 0; j < l; j++)
 		{
-			vec[k] += two_pow * a[k*l + j];
+			vec[k/l] += two_pow * a[k*l + j];
 			two_pow *= 2;
 		}
 	}
@@ -476,15 +476,25 @@ int* BatchGSW::batch_BitDecomp_1(int *a, int n, int shift)
 
 int* BatchGSW::batch_PowersOf2(int *a, int n, int shift)
 {
-	int* vec_pow2 = new int[n*l];
+	int* vec_pow2 = NULL;
+
+	try
+	{
+		vec_pow2 = new int[n*l]; 
+	}
+	catch (bad_alloc& ba)
+	{
+		cerr << "bad alloc caught: " << ba.what() << endl;
+	}
+	
 	int two_pow = 1;
 
-	for (int i = 0, k=shift; i < n; i++, k=(k+1)%n)
+	for (int i = 0; i < n; i++)
 	{
 		two_pow = 1;
-		for (int j = 0; j < l; j++)
+		for (int j = 0, k = shift; j < l; j++, k = (k + 1) % l)
 		{
-			vec_pow2[k*l + j] = a[k] * two_pow;
+			vec_pow2[i*l + k] = a[i] * two_pow;
 			two_pow *= 2;
 		}
 	}
@@ -498,9 +508,15 @@ int** BatchGSW::batch_matrix_BitDecomp(int **A, int m, int n)
 
 	int **C = new int*[l];
 
-	for (int i = 0; i < l; i++)
+	cout << "\n\tBitDecomp\n\n";
+	for (int i = 0; i < m; i++)
 	{
 		C[i] = batch_BitDecomp(A[i], 1, i);
+		for (int j = 0; j < l; j++)
+		{
+			cout << C[i][j] << " ";
+		}
+		cout << endl;
 	}
 
 	return C;
@@ -510,9 +526,15 @@ int** BatchGSW::batch_matrix_BitDecomp_1(int **A, int m, int n)
 {
 	int **C = new int*[m];
 
+	cout << "\n\tBitDecomp_1\n\n";
 	for (int i = 0; i < m; i++)
 	{
 		C[i] = batch_BitDecomp_1(A[i], n, i);
+		for (int j = 0; j < l; j++)
+		{
+			cout << C[i][j] << " ";
+		}
+		cout << endl;
 	}
 
 	return C;
@@ -539,6 +561,7 @@ int** BatchGSW::batch_Flatten_mod_x_0(int **A, int N)
 	int **C = new int*[N];
 	int *C_intermediar = NULL;
 
+	cout << "\n\t\tFlatten\n\n";
 	for (int i = 0; i < N; i++)
 	{
 		C_intermediar = batch_BitDecomp_1(A[i], N, i);
@@ -546,9 +569,13 @@ int** BatchGSW::batch_Flatten_mod_x_0(int **A, int N)
 		for (int j = 0; j < N / l; j++)
 		{
 			C_intermediar[j] = C_intermediar[j] % x_0;
+			cout << C_intermediar[j] << " ";
 		}
+		cout << endl;
 
 		C[i] = batch_BitDecomp(C_intermediar, N / l, i);
+
+		delete[] C_intermediar;
 	}
 
 	return C;
