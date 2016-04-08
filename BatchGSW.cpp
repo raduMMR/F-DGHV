@@ -398,14 +398,14 @@ int** BatchGSW::batch_GSW_Enc(int *message)
 		C_prim[i][0] = enc_0;
 	}
 
-	C = matrix_BitDecomp(C_prim, l, 1);
+	C = batch_matrix_BitDecomp(C_prim, l, 1);
 
 	for (int i = 0; i < l; i++)
 	{
 		C[i][i] += message[i];
 	}
 
-	C = Flatten(C, l);
+	C = batch_Flatten_mod_x_0(C, l);
 
 	// cleanup
 	for (int i = 0; i < l; i++)
@@ -440,12 +440,12 @@ int* BatchGSW::batch_BitDecomp(int *a, int n, int shift)
 	int *bitdecomp = new int[n*l];
 	int bit = 0;
 
-	for (int i = 0, k=shift; i < n; i++, k=(k+1)%n )
+	for (int i = 0; i < n; i++ )
 	{
 		bit = a[i];
-		for (int j = 0; j < l; j++)
+		for (int j = 0, k = shift; j < l; j++, k = (k + 1) % l)
 		{
-			bitdecomp[k*l + j] = bit % 2;
+			bitdecomp[i*l + k] = bit % 2;
 			bit = bit / 2;
 		}
 	}
@@ -461,13 +461,13 @@ int* BatchGSW::batch_BitDecomp_1(int *a, int n, int shift)
 
 	int *vec = new int[dim];
 	int two_pow = 1;
-	for (int i = 0, k=shift; i < dim; i++, k=(k+1)%n)
+	for (int i = 0; i < dim; i++)
 	{
-		vec[k/l] = 0;
+		vec[i] = 0;
 		two_pow = 1;
-		for (int j = 0; j < l; j++)
+		for (int j = 0, k = shift; j < l; j++, k = (k + 1) % l)
 		{
-			vec[k/l] += two_pow * a[k*l + j];
+			vec[i] += two_pow * a[i*l + k];
 			two_pow *= 2;
 		}
 	}
@@ -504,19 +504,21 @@ int* BatchGSW::batch_PowersOf2(int *a, int n, int shift)
 
 int** BatchGSW::batch_matrix_BitDecomp(int **A, int m, int n)
 {
+	// pentru F-DGHV
 	assert(m == l);
+	assert(n == 1);
 
 	int **C = new int*[l];
 
-	cout << "\n\tBitDecomp\n\n";
-	for (int i = 0; i < m; i++)
+	// cout << "\n\t batch matrix BitDecomp \n\n";
+	for (int i = 0; i < l; i++)
 	{
-		C[i] = batch_BitDecomp(A[i], 1, i);
-		for (int j = 0; j < l; j++)
+		C[i] = batch_BitDecomp(A[i], n, i);
+		/*for (int j = 0; j < l; j++)
 		{
 			cout << C[i][j] << " ";
 		}
-		cout << endl;
+		cout << endl;*/
 	}
 
 	return C;
@@ -524,17 +526,18 @@ int** BatchGSW::batch_matrix_BitDecomp(int **A, int m, int n)
 
 int** BatchGSW::batch_matrix_BitDecomp_1(int **A, int m, int n)
 {
+	// pentru F-DGHV
+	assert(m == l);
+	assert(n == l);
+
 	int **C = new int*[m];
 
-	cout << "\n\tBitDecomp_1\n\n";
+	// cout << "\n\t batch matrix BitDecomp_1 \n\n";
 	for (int i = 0; i < m; i++)
 	{
 		C[i] = batch_BitDecomp_1(A[i], n, i);
-		for (int j = 0; j < l; j++)
-		{
-			cout << C[i][j] << " ";
-		}
-		cout << endl;
+		C[i][0] = C[i][0] % x_0;
+		// cout << C[i][0] << endl;
 	}
 
 	return C;
@@ -561,8 +564,20 @@ int** BatchGSW::batch_Flatten_mod_x_0(int **A, int N)
 	int **C = new int*[N];
 	int *C_intermediar = NULL;
 
-	cout << "\n\t\tFlatten\n\n";
-	for (int i = 0; i < N; i++)
+	int **C_prim = NULL;
+
+	// cout << "\n\t\t batch Flatten mod x_0 \n\n";
+	C_prim = batch_matrix_BitDecomp_1(A, l, l);
+	C = batch_matrix_BitDecomp(C_prim, l, 1);
+
+	// cleanup 
+	for (int i = 0; i < l; i++)
+	{
+		delete[] C_prim[i];
+	}
+	delete[] C_prim;
+	
+	/*for (int i = 0; i < N; i++)
 	{
 		C_intermediar = batch_BitDecomp_1(A[i], N, i);
 
@@ -576,7 +591,7 @@ int** BatchGSW::batch_Flatten_mod_x_0(int **A, int N)
 		C[i] = batch_BitDecomp(C_intermediar, N / l, i);
 
 		delete[] C_intermediar;
-	}
+	}*/
 
 	return C;
 }
