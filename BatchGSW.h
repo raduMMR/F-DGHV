@@ -7,6 +7,13 @@ using namespace std;
 // #define _DEBUG
 // #define _PRINT
 
+/*
+@brief clasa pentru F-DGHV
+	implementarea tehnicilor de Flattenig pentru schema de 
+	criptare homomorfica peste intregi
+
+	TODO : de adaugat operatii : MultConst, NAND, bootstrapping
+*/
 class BatchGSW
 {
 	int *v;		// v = PowersOf2(1) cu coeficienti { 2^i : i = [1,l-1] }
@@ -14,6 +21,8 @@ class BatchGSW
 
 	long enc_0; 
 	long x_0;
+
+	int **batch_v;
 
 public:
 	/*
@@ -92,6 +101,12 @@ public:
 	int** Flatten(int **C, int N);
 
 	/*
+	@brief metoda aplicata ctxt-urilor rezultate in urma 
+		operatiilor homomorfice, reducere modulo x_0
+	*/
+	int** Flatten_mod_x_0(int **C, int N);
+
+	/*
 	@brief criptare cu schema F-DGHV
 	@param message mesajul de criptat
 	@return matrice ciphertext l x l 
@@ -113,28 +128,52 @@ public:
 		return l;
 	}
 
+
+	// functii ajutatoare
+	// TODO : de optimizat functiile, inmultirea matricilor cu Coppersmith
+
+	/*
+	@brief inmulteste doua matrici, inmultire neoptimizata "naiva"
+	@param A, B matricile care se vor inmulti
+	@param l dimensiunea matricilor l x l
+	@return produsul inmultirii matricilor
+	*/
+	int** matrix_mult(int **A, int **B, int l);
+
+	/*
+	@brief adunare a doua matrici de dimensiune l x l
+	@param A, B matricile de adunat
+	@return rezultatul inmultirii
+	*/
+	int **matrix_add(int **A, int **B, int l);
+
+	/*
+	@brief criptare GSW cu batching
+	@param m vectorul de mesaje binare ce vor fi criptate
+		de dimensiune n = l
+	@return matricea ciphertext GSW
+	*/
+	int**	batch_GSW_Enc(int *m);
+
+	/*
+	@brief decriptare GSW cu batching
+	@param C matricea GSW ciphertext
+	@return vectorul de mesaje decriptate de dimensiune l
+	*/
+	int*	batch_GSW_Dec(int **C);
+
+	int*	batch_BitDecomp(int *a, int n, int shift);
+	int*	batch_BitDecomp_1(int *a, int n, int shift);
+	int*	batch_PowersOf2(int *a, int n, int shift);
+
+	int**	batch_matrix_BitDecomp(int **A, int m, int n);
+	int**	batch_matrix_BitDecomp_1(int **A, int m, int n);
+	int**	batch_matrix_PowersOf2(int **A, int m, int n);
+	int**	batch_Flatten_mod_x_0(int **C, int N);
 };
 
 
 
-
-// functi ajutatoare
-// TODO : de optimizat functiile, inmultirea matricilor cu Coppersmith
-
-/*
-@brief inmulteste doua matrici, inmultire neoptimizata "naiva"
-@param A, B matricile care se vor inmulti
-@param l dimensiunea matricilor l x l
-@return produsul inmultirii matricilor
-*/
-int** matrix_mult(int **A, int **B, int l);
-
-/*
-@brief adunare a doua matrici de dimensiune l x l
-@param A, B matricile de adunat
-@return rezultatul inmultirii
-*/
-int **matrix_add(int **A, int **B, int l);
 
 /*template<T>T *aloca_memorie(int dim)
 {

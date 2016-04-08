@@ -19,6 +19,7 @@ BatchGSW::BatchGSW(long x_0, long enc_0)
 	}
 
 	l += 2;
+	// l *= 2;
 
 	int unu[] = { 1 };
 	v = PowersOf2(unu, 1);
@@ -33,6 +34,13 @@ BatchGSW::BatchGSW(long x_0, long enc_0)
 
 #endif
 
+	// batching secret keys
+	batch_v = new int*[l];
+	for (int i = 0; i < l; i++)
+	{
+		batch_v[i] = batch_PowersOf2(unu, 1, i);
+	}
+
 }
 
 BatchGSW::~BatchGSW()
@@ -40,6 +48,13 @@ BatchGSW::~BatchGSW()
 	if (v != NULL)
 	{
 		delete[] v;
+	}
+
+	if (batch_v != NULL)
+	{
+		for (int i = 0; i < l; i++)
+			delete[] batch_v[i];
+		delete[] batch_v;
 	}
 }
 
@@ -201,6 +216,30 @@ int** BatchGSW::Flatten(int **A, int N)
 	return C;
 }
 
+int** BatchGSW::Flatten_mod_x_0(int **A, int N)
+{
+	assert(A != NULL);
+	assert(N != 0);
+	assert(N % l == 0);
+
+	int **C = new int*[N];
+	int *C_intermediar = NULL;
+
+	for (int i = 0; i < N; i++)
+	{
+		C_intermediar = BitDecomp_1(A[i], N);
+
+		for (int j = 0; j < N / l; j++)
+		{
+			C_intermediar[j] = C_intermediar[j] % x_0;
+		}
+
+		C[i] = BitDecomp(C_intermediar, N / l);
+	}
+
+	return C;
+}
+
 int** BatchGSW::GSW_Encrypt(int message)
 {
 	int **C = NULL;
@@ -284,10 +323,7 @@ int BatchGSW::GSW_Decrypt(int **C)
 	return enc_miu;
 }
 
-
-
-// functii ajutatoare
-int** matrix_mult(int **A, int **B, int l)
+int** BatchGSW::matrix_mult(int **A, int **B, int l)
 {
 	int **M = new int*[l];
 	for (int i = 0; i < l; i++)
@@ -298,6 +334,7 @@ int** matrix_mult(int **A, int **B, int l)
 			M[i][j] = 0;
 			for (int k = 0; k < l; k++)
 			{
+				// M[i][j] += A[i][k] * B[k][j] % 2;
 				M[i][j] += A[i][k] * B[k][j];
 			}
 		}
@@ -306,7 +343,7 @@ int** matrix_mult(int **A, int **B, int l)
 	return M;
 }
 
-int **matrix_add(int **A, int **B, int l)
+int** BatchGSW::matrix_add(int **A, int **B, int l)
 {
 	int **M = new int*[l];
 
@@ -315,9 +352,204 @@ int **matrix_add(int **A, int **B, int l)
 		M[i] = new int[l];
 		for (int j = 0; j < l; j++)
 		{
+			// M[i][j] = A[i][j] + B[i][j] % 2;
 			M[i][j] = A[i][j] + B[i][j];
 		}
 	}
 
 	return M;
+}
+
+
+/***************			BATCHING GSW				*******/
+
+int** BatchGSW::batch_GSW_Enc(int *message)
+{
+	int **C = new int*[l];
+	int **C_prim = new int*[l];
+
+	for (int i = 0; i < l; i++)
+	{
+		C_prim[i] = new int[1];
+		C_prim[i][0] = enc_0;
+#ifdef _PRINT
+			cout << C_prim[i][0] << endl;
+#endif
+	}
+
+	C = matrix_BitDecomp(C_prim, l, 1);
+
+#ifdef _PRINT
+	cout << "\nBitDecomp( C_prim )\n\n";
+#endif
+
+	for (int i = 0; i < l; i++)
+	{
+#ifdef _PRINT
+		for (int j = 0; j < l; j++)
+		{
+			cout << C[i][j] << " ";
+		}
+		cout << endl;
+#endif
+		C[i][i] += message[i];
+	}
+
+#ifdef _PRINT
+	cout << endl << endl;
+#endif
+
+	C = Flatten(C, l);
+
+#ifdef _PRINT
+	cout << "\nCiphertext\n\n";
+	for (int i = 0; i < l; i++)
+	{
+		for (int j = 0; j < l; j++)
+		{
+			cout << C[i][j] << " ";
+		}
+		cout << endl;
+	}
+	cout << endl;
+#endif
+
+	return C;
+}
+
+int* BatchGSW::batch_GSW_Dec(int **C)
+{
+	int *m = new int[l];
+
+	int enc_miu = 0;
+
+	for (int i = 0; i < l; i++)
+	{
+		m[i] = 0;
+		for (int j = 0; j < l; j++)
+		{
+			m[i] += C[i][j] * batch_v[i][j];
+		}
+	}
+	
+	return m;
+}
+
+int* BatchGSW::batch_BitDecomp(int *a, int n, int shift)
+{
+	int *bitdecomp = new int[n*l];
+	int bit = 0;
+
+	for (int i = 0, k=shift; i < n; i++, k=(k+1)%n )
+	{
+		bit = a[i];
+		for (int j = 0; j < l; j++)
+		{
+			bitdecomp[k*l + j] = bit % 2;
+			bit = bit / 2;
+		}
+	}
+
+	return bitdecomp;
+}
+
+int* BatchGSW::batch_BitDecomp_1(int *a, int n, int shift)
+{
+	assert(n != 0);
+	assert(n % l == 0);
+	int dim = n / l;
+
+	int *vec = new int[dim];
+	int two_pow = 1;
+	for (int i = 0, k=shift; i < dim; i++, k=(k+1)%n)
+	{
+		vec[k] = 0;
+		two_pow = 1;
+		for (int j = 0; j < l; j++)
+		{
+			vec[k] += two_pow * a[k*l + j];
+			two_pow *= 2;
+		}
+	}
+	return vec;
+}
+
+int* BatchGSW::batch_PowersOf2(int *a, int n, int shift)
+{
+	int* vec_pow2 = new int[n*l];
+	int two_pow = 1;
+
+	for (int i = 0, k=shift; i < n; i++, k=(k+1)%n)
+	{
+		two_pow = 1;
+		for (int j = 0; j < l; j++)
+		{
+			vec_pow2[k*l + j] = a[k] * two_pow;
+			two_pow *= 2;
+		}
+	}
+
+	return vec_pow2;
+}
+
+int** BatchGSW::batch_matrix_BitDecomp(int **A, int m, int n)
+{
+	assert(m == l);
+
+	int **C = new int*[l];
+
+	for (int i = 0; i < l; i++)
+	{
+		C[i] = batch_BitDecomp(A[i], 1, i);
+	}
+
+	return C;
+}
+
+int** BatchGSW::batch_matrix_BitDecomp_1(int **A, int m, int n)
+{
+	int **C = new int*[m];
+
+	for (int i = 0; i < m; i++)
+	{
+		C[i] = batch_BitDecomp_1(A[i], n, i);
+	}
+
+	return C;
+}
+
+int** BatchGSW::batch_matrix_PowersOf2(int **A, int m, int n)
+{
+	int **C = new int*[m];
+
+	for (int i = 0; i < m; i++)
+	{
+		C[i] = batch_PowersOf2(A[i], n, i);
+	}
+
+	return C;
+}
+
+int** BatchGSW::batch_Flatten_mod_x_0(int **A, int N)
+{
+	assert(A != NULL);
+	assert(N != 0);
+	assert(N % l == 0);
+
+	int **C = new int*[N];
+	int *C_intermediar = NULL;
+
+	for (int i = 0; i < N; i++)
+	{
+		C_intermediar = batch_BitDecomp_1(A[i], N, i);
+
+		for (int j = 0; j < N / l; j++)
+		{
+			C_intermediar[j] = C_intermediar[j] % x_0;
+		}
+
+		C[i] = batch_BitDecomp(C_intermediar, N / l, i);
+	}
+
+	return C;
 }
