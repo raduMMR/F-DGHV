@@ -12,6 +12,9 @@ using namespace std;
 	implementarea tehnicilor de Flattenig pentru schema de 
 	criptare homomorfica peste intregi
 
+	TODO : DE MODIFICAT TIPURILE DE DATE FOLOSITE CU CELE DIN NTL
+			ASTFEL INCAT SCHEMA SA POATA FI TESTATA CU PARAMETRI SE SECURITATE
+			ADECVATI
 	TODO : de adaugat operatii : MultConst, NAND, bootstrapping
 */
 class BatchGSW
@@ -19,6 +22,7 @@ class BatchGSW
 	int *v;		// v = PowersOf2(1) cu coeficienti { 2^i : i = [1,l-1] }
 	int l;		// l = [ log x_0 ] + 1
 
+	// pentru BATCHING AR FI NEVOIE DE N x ENC(0) DIFERITE
 	long enc_0; 
 	long x_0;
 

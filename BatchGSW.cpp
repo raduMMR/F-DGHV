@@ -18,8 +18,8 @@ BatchGSW::BatchGSW(long x_0, long enc_0)
 		x_0 = x_0 / 2;
 	}
 
-	l += 2;
-	// l *= 2;
+	// l += 2;
+	l = l*l;
 
 	int unu[] = { 1 };
 	v = PowersOf2(unu, 1);
@@ -566,8 +566,14 @@ int** BatchGSW::batch_Flatten_mod_x_0(int **A, int N)
 
 	int **C_prim = NULL;
 
-	// cout << "\n\t\t batch Flatten mod x_0 \n\n";
 	C_prim = batch_matrix_BitDecomp_1(A, l, l);
+
+	// reducerea modulo x_0
+	for (int i = 0; i < l; i++)
+	{
+		C_prim[i][0] = C_prim[i][0] % x_0;
+	}
+
 	C = batch_matrix_BitDecomp(C_prim, l, 1);
 
 	// cleanup 
@@ -576,22 +582,6 @@ int** BatchGSW::batch_Flatten_mod_x_0(int **A, int N)
 		delete[] C_prim[i];
 	}
 	delete[] C_prim;
-	
-	/*for (int i = 0; i < N; i++)
-	{
-		C_intermediar = batch_BitDecomp_1(A[i], N, i);
-
-		for (int j = 0; j < N / l; j++)
-		{
-			C_intermediar[j] = C_intermediar[j] % x_0;
-			cout << C_intermediar[j] << " ";
-		}
-		cout << endl;
-
-		C[i] = batch_BitDecomp(C_intermediar, N / l, i);
-
-		delete[] C_intermediar;
-	}*/
 
 	return C;
 }
