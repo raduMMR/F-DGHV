@@ -65,6 +65,8 @@ class Flat_DGHV
 	*/
 	void	compute_DGHV_settings(int lambda);
 
+	void	compute_FDGHV_settings();
+
 	ZZ		encrypt_DGHV(int message)const;
 
 	int		decrypt_DGHV(ZZ &ctxt)const;
@@ -85,6 +87,12 @@ public:
 				72 - good
 	*/
 	Flat_DGHV(int lambda);
+
+	/*
+	@brief constructor in care sunt incarcate dintr-un fisier text 
+		setarile generate la o rulare anterioara
+	*/
+	Flat_DGHV::Flat_DGHV();
 
 	/*
 	@brief criptare a unui mesaj intreg cu schema Flat_DGHV

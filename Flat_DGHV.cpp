@@ -3,12 +3,22 @@
 #include "utilities.h"
 #include <assert.h>
 
+Flat_DGHV::Flat_DGHV()
+{
+	read_DGHV_param_from_file(pk_DGHV, sk_DGHV);
+}
+
 Flat_DGHV::Flat_DGHV(int lambda)
 {
 	// this->lambda = lambda;
 
 	compute_DGHV_settings(lambda);
 
+	compute_FDGHV_settings();
+}
+
+void Flat_DGHV::compute_FDGHV_settings()
+{
 	l = 0;					// l = log x_0 + 1
 	ZZ x_0 = pk_DGHV[0];
 	while (x_0 != 0)
@@ -48,6 +58,10 @@ void Flat_DGHV::compute_DGHV_settings(int lambda)
 	Params::set_params(gamma, eta, ro, tau, ro_prim);
 
 	generate_keys(sk_DGHV, pk_DGHV);
+
+	write_DGHV_params_in_file(pk_DGHV, sk_DGHV);
+
+	assert(pk_DGHV.size() != 0);
 }
 
 ZZ	Flat_DGHV::encrypt_DGHV(int message)const
@@ -63,7 +77,7 @@ int	Flat_DGHV::decrypt_DGHV(ZZ &ctxt)const
 void Flat_DGHV::bitdecomp(Mat<ZZ> &C, int index)const
 {
 	Vec<ZZ> C_decomp;
-	long length = C.NumCols * l;
+	long length = C.NumCols() * l;
 	C_decomp.SetLength(length);
 
 	ZZ elem;
@@ -86,12 +100,12 @@ void Flat_DGHV::bitdecomp(Mat<ZZ> &C, int index)const
 void Flat_DGHV::bitdecomp_1(Mat<ZZ> &C, int index)const
 {
 	Vec<ZZ> C_decomp_1;
-	long length = C.NumCols / l;
+	long length = C.NumCols() / l;
 	C_decomp_1.SetLength(length);
 
 	ZZ pow_of_two(1);
 	ZZ two(2);
-	for (int i = 0, j = -1; i < C.NumCols; i++)
+	for (int i = 0, j = -1; i < C.NumCols(); i++)
 	{
 		if (i % l == 0)
 		{
@@ -109,7 +123,7 @@ void Flat_DGHV::bitdecomp_1(Mat<ZZ> &C, int index)const
 
 void Flat_DGHV::flatten(Mat<ZZ> &C)const
 {
-	for (int i = 0; i < C.NumRows; i++)
+	for (int i = 0; i < C.NumRows(); i++)
 	{
 		bitdecomp_1(C, i);
 		C[i][0] = C[i][0] % pk_DGHV[0];
@@ -140,7 +154,7 @@ int Flat_DGHV::decrypt(Mat<ZZ> &C)const
 
 void Flat_DGHV::hom_add(Mat<ZZ> &C1, Mat<ZZ> &C2, Mat<ZZ> &C_add)const
 {
-	if (C_add.NumRows != l || C_add.NumCols != l)
+	if (C_add.NumRows() != l || C_add.NumCols() != l)
 	{
 		C_add.SetDims(l, l);
 	}
@@ -158,7 +172,7 @@ void Flat_DGHV::hom_add(Mat<ZZ> &C1, Mat<ZZ> &C2, Mat<ZZ> &C_add)const
 
 void Flat_DGHV::hom_mult(Mat<ZZ> &C1, Mat<ZZ> &C2, Mat<ZZ> &C_mult)const
 {
-	if (C_mult.NumCols != l || C_mult.NumRows != l)
+	if (C_mult.NumCols() != l || C_mult.NumRows() != l)
 	{
 		C_mult.SetDims(l, l);
 	}
