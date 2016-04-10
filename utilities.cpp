@@ -1,6 +1,7 @@
 #include "utilities.h"
 #include <assert.h>
 #include <time.h>
+#include <fstream>
 
 ZZ sample_r()
 {
@@ -223,11 +224,12 @@ vector<int> choose_random_subset()
 
 	int nr_de_coeff = rand() % (Params::getTau()-1) + 1; // nr apartine [1, tau]
 
+	srand(time(NULL));
 	for (int i = 0; i < nr_de_coeff; i++)
 	{
+		// coeff = rand() % (Params::getTau() - 1) + 1;
 		do
-		{
-			srand(time(NULL));
+		{	
 			coeff = rand() % ( Params::getTau() - 1 ) + 1; // nr apartine [1, tau]
 			resample = 0;
 			for (int j = 0; j < S.size(); j++)
@@ -345,4 +347,63 @@ void test_symmentric_DGHV()
 	}
 
 	cout << "Final test schema DGHV simetrica.\n";
+}
+
+
+// I/O
+void read_DGHV_param_from_file(vector<ZZ> &pk, ZZ &sk)
+{
+	ifstream file("dghv_param.txt", ios::in);
+
+	file >> sk;
+
+	cout << "READ FC sk = " << sk << endl;
+
+	long pk_size;
+	file >> pk_size;
+	pk.reserve(pk_size);
+	ZZ elem;
+	for (int i = 0; i < pk_size; i++)
+	{
+		file >> elem;
+		pk.push_back(elem);
+	}
+
+	file.close();
+}
+
+void write_DGHV_params_in_file(vector<ZZ> &pk, ZZ &sk)
+{
+	ofstream file("dghv_param.txt", ios::out);
+
+	file << sk << endl;
+
+	file << pk.size() << endl;
+	for (int i = 0; i < pk.size(); i++)
+	{
+		file << pk[i] << " ";
+	}
+}
+
+// operatie = 0 READ
+// operatie = 1 WRITE
+void test_file_IO_DGHV_params(vector<ZZ> &pk, ZZ &sk, int operatie)
+{
+	if (operatie == 0)
+	{
+		write_DGHV_params_in_file(pk, sk);
+	}
+	else
+	{
+		read_DGHV_param_from_file(pk, sk);
+
+		cout << "sk = " << sk << endl;
+		cout << "pk.size = " << pk.size() << endl;
+		for (int i = 0; i < pk.size(); i++)
+		{
+			cout << pk[i] << " ";
+		}
+
+		cout << "\n\nTestare citire incheiata\n";
+	}
 }

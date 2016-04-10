@@ -59,3 +59,9 @@ vector<int> choose_random_subset();
 @brief procedura de test pentru schema DGHV simetrica
 */
 void test_symmentric_DGHV();
+
+/*
+@brief citire/scriere chei secrete si publice in si din fisier
+*/
+void read_DGHV_param_from_file(vector<ZZ> &pk, ZZ &sk);
+void write_DGHV_params_in_file(vector<ZZ> &pk, ZZ &sk);
