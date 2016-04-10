@@ -29,21 +29,22 @@ void Flat_DGHV::compute_FDGHV_settings()
 	assert(l != 0);
 	l += 1;
 
-	v.SetLength(l);			// v = Powersof2(1);
+	v.reserve(l);			// v = Powersof2(1);
 	ZZ two(2);
 	ZZ pow_of_two(1);
 	for (int i = 0; i < l; i++)
 	{
-		v[i] = pow_of_two;
+		v.push_back(pow_of_two);
 		pow_of_two *= 2;
 	}
 
-	C_prim.SetDims(l, 1);
-
+	C_prim.reserve(l);
 	for (int i = 0; i < l; i++)
 	{
 		// o criptare noua pentru fiecare linie a matricii C_prim
-		C_prim[i][0] = encrypt_DGHV(0);
+		Vec_ZZ empty;
+		C_prim.push_back(empty);
+		C_prim[i].push_back(encrypt_DGHV(0));
 	}
 }
 
@@ -74,11 +75,11 @@ int	Flat_DGHV::decrypt_DGHV(ZZ &ctxt)const
 	return ( ctxt % sk_DGHV % 2 );
 }
 
-void Flat_DGHV::bitdecomp(Mat<ZZ> &C, int index)const
+Vec_ZZ Flat_DGHV::bitdecomp(Vec_ZZ &C_i)const
 {
-	Vec<ZZ> C_decomp;
-	long length = C.NumCols() * l;
-	C_decomp.SetLength(length);
+	Vec_ZZ C_decomp;
+	long length = C_i.size() * l;
+	C_decomp.reserve(length);
 
 	ZZ elem;
 	for (int i = 0, j=-1; i < length; i++)
@@ -86,63 +87,79 @@ void Flat_DGHV::bitdecomp(Mat<ZZ> &C, int index)const
 		if (i % l == 0)
 		{
 			j++;
-			elem = C[index][j];
+			elem = C_i[j];
 		}
 
-		C_decomp[i] = elem % 2;
+		C_decomp.push_back(ZZ(elem % 2));
 		elem = elem / 2;
 	}
 
-	C[index] = C_decomp;
-
+	return C_decomp;
 }
 
-void Flat_DGHV::bitdecomp_1(Mat<ZZ> &C, int index)const
+Vec_ZZ Flat_DGHV::bitdecomp_1(Vec_ZZ &C_i)const
 {
-	Vec<ZZ> C_decomp_1;
-	long length = C.NumCols() / l;
-	C_decomp_1.SetLength(length);
+	Vec_ZZ C_decomp_1;
+	long length = C_i.size() / l;
+	C_decomp_1.reserve(length);
 
 	ZZ pow_of_two(1);
 	ZZ two(2);
-	for (int i = 0, j = -1; i < C.NumCols(); i++)
+	for (int i = 0, j = -1; i < C_i.size(); i++)
 	{
 		if (i % l == 0)
 		{
 			pow_of_two = 1;
 			j++;
-			C_decomp_1[j] = 0;
+			C_decomp_1.push_back(ZZ(0));		//C_decomp_1[j] = 0;
 		}
 
-		C_decomp_1[j] +=  C[index][i] * pow_of_two;
+		C_decomp_1[j] +=  C_i[i] * pow_of_two;
 		pow_of_two *= two;
 	}
 
-	C[index] = C_decomp_1;
+	return C_decomp_1;
 }
 
-void Flat_DGHV::flatten(Mat<ZZ> &C)const
+Mat_ZZ Flat_DGHV::flatten(Mat_ZZ &C)const
 {
-	for (int i = 0; i < C.NumRows(); i++)
+	Mat_ZZ Flat_C;
+	Flat_C.reserve(l);
+	Vec_ZZ bd_1;
+
+	for (int i = 0; i < C.size(); i++)
 	{
-		bitdecomp_1(C, i);
-		C[i][0] = C[i][0] % pk_DGHV[0];
-		bitdecomp(C, i);
+		Vec_ZZ empty;
+		Flat_C.push_back(empty);
+
+		bd_1 = bitdecomp_1(C[i]);
+		C[i][0] = bd_1[0] % pk_DGHV[0];
+
+		Flat_C[i] = bitdecomp(bd_1);
 	}
+
+	return Flat_C;
 }
 
-void Flat_DGHV::encrypt(int message, Mat<ZZ> &C)const
+Mat_ZZ Flat_DGHV::encrypt(int message)const
 {
-	C = C_prim;
+	Mat_ZZ C;
+	C.reserve(l);
+
 	for (int i = 0; i < l; i++)
 	{
-		bitdecomp(C, i);
+		Vec_ZZ empty;
+		C.push_back(empty);
+		Vec_ZZ linie = C_prim[i];
+		C[i] = bitdecomp(linie);
 		C[i][i] += message;
 	}
 	flatten(C);
+
+	return C;
 }
 
-int Flat_DGHV::decrypt(Mat<ZZ> &C)const
+int Flat_DGHV::decrypt(Mat_ZZ &C)const
 {
 	ZZ message(0);
 	for (int i = 0; i < l; i++)
@@ -152,45 +169,49 @@ int Flat_DGHV::decrypt(Mat<ZZ> &C)const
 	return decrypt_DGHV(message);
 }
 
-void Flat_DGHV::hom_add(Mat<ZZ> &C1, Mat<ZZ> &C2, Mat<ZZ> &C_add)const
+Mat_ZZ Flat_DGHV::hom_add(Mat_ZZ &C1, Mat_ZZ &C2)const
 {
-	if (C_add.NumRows() != l || C_add.NumCols() != l)
-	{
-		C_add.SetDims(l, l);
-	}
+	assert(C1.size() == C2.size());
+	assert(C1.size() == l);
+	assert(C1[0].size() == l);
 
+	Mat_ZZ C_add;
+	C_add.reserve(l);
+	
 	for (int i = 0; i < l; i++)
 	{
 		for (int j = 0; j < l; j++)
 		{
-			C_add[i][j] = C1[i][j] + C2[i][j];
+			C_add[i].push_back(C1[i][j] + C2[i][j]);
 		}
 	}
 
-	flatten(C_add);
+	return flatten(C_add);
 }
 
-void Flat_DGHV::hom_mult(Mat<ZZ> &C1, Mat<ZZ> &C2, Mat<ZZ> &C_mult)const
+Mat_ZZ Flat_DGHV::hom_mult(Mat_ZZ &C1, Mat_ZZ &C2)const
 {
-	if (C_mult.NumCols() != l || C_mult.NumRows() != l)
-	{
-		C_mult.SetDims(l, l);
-	}
+	assert(C1.size() == C2.size());
+	assert(C1.size() == l);
+	assert(C1[0].size() == l);
+
+	Mat_ZZ C_mult;
+	C_mult.reserve(l);
 
 	ZZ z;
 	for (int i = 0; i < l; i++)
 	{
+		C_mult[i].reserve(l);
 		for (int j = 0; j < l; j++)
 		{
-			z = 0;
+			C_mult[i].push_back(ZZ(0));
 			for (int k = 0; k < l; k++)
 			{
-				z += C1[i][k] * C2[k][j];
+				C_mult[i][j] += C1[i][k] * C2[k][j];
 			}
-			C_mult[i][j] = z;
 		}
 	}
 
-	flatten(C_mult);
+	return flatten(C_mult);
 }
 

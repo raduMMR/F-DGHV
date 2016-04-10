@@ -1,11 +1,13 @@
 #pragma once
 #include <iostream>
 #include <NTL\ZZ.h>
-#include <NTL\vector.h>
 #include <NTL\matrix.h>
 #include <vector>
 using namespace std;
 using namespace NTL;
+
+typedef vector<vector<ZZ> > Mat_ZZ;
+typedef vector<ZZ> Vec_ZZ;
 
 /*
 @brief clasa care implementeaza FHE peste intregi
@@ -16,7 +18,7 @@ class Flat_DGHV
 	/*
 	@field vectorul cheie secreta v = Powersof2(1)
 	*/
-	Vec<ZZ> v;
+	Vec_ZZ v;
 
 	/*
 	@field l = log x_0 + 1, numarul de biti necesari reprezentarii
@@ -52,7 +54,7 @@ class Flat_DGHV
 										..., 
 										Enc(0)[l-1] )
 	*/
-	Mat<ZZ> C_prim;
+	Mat_ZZ C_prim;
 
 	/*
 	metodele private care vor fi folosite pentru tehnicile implementate de schema
@@ -71,11 +73,11 @@ class Flat_DGHV
 
 	int		decrypt_DGHV(ZZ &ctxt)const;
 
-	void	bitdecomp(Mat<ZZ> &C, int index)const;		// BitDecomp(a) = {a_0, a_1, ..., a_n} , a = a_0 + 2*a_1+... +2^(n)*n
+	Vec_ZZ	bitdecomp(Vec_ZZ &C_i)const;		// BitDecomp(a) = {a_0, a_1, ..., a_n} , a = a_0 + 2*a_1+... +2^(n)*n
 
-	void	bitdecomp_1(Mat<ZZ> &C, int index)const;		// BitDecomp(a_0, a_1, ..., a_n) = a , cu a = a_0 + 2*a_1+... +2^(n)*n
+	Vec_ZZ	bitdecomp_1(Vec_ZZ &C_i)const;		// BitDecomp(a_0, a_1, ..., a_n) = a , cu a = a_0 + 2*a_1+... +2^(n)*n
 
-	void	flatten(Mat<ZZ> &C)const;	// Flatten(C)=BitDecomp( BitDecomp_1(C) % x_0 )
+	Mat_ZZ	flatten(Mat_ZZ &C)const;			// Flatten(C)=BitDecomp( BitDecomp_1(C) % x_0 )
 
 public:
 	/*
@@ -97,32 +99,32 @@ public:
 	/*
 	@brief criptare a unui mesaj intreg cu schema Flat_DGHV
 	@param message - mesajul de criptat
-	@param ref out C - ciphertext-ul rezultat in urma criptarii
+	@return matricea C - ciphertext-ul rezultat in urma criptarii
 	*/
-	void encrypt(int message, Mat<ZZ> &C)const;
+	Mat_ZZ	encrypt(int message)const;
 
 	/*
 	@brief decriptare cu schema Flat_DGHV
 	@param ref in C - ciphertext-ul care va fi decriptat
 	@return valoarea intreaga obtinuta in urma decriptarii
 	*/
-	int decrypt(Mat<ZZ> &C)const;
+	int		decrypt(Mat_ZZ &C)const;
 
 	/*
 	@brief adunare homomorfica a doua ciphertext-uri
 		C_add = Flatten(C1+C2)
 	@param in C1, C2 - matricile de intrare
-	@param out C_add - rezultatul adunarii ciphertext-urilor
+	@return C_add - rezultatul adunarii ciphertext-urilor
 	*/
-	void hom_add(Mat<ZZ> &C1, Mat<ZZ> &C2, Mat<ZZ> &C_add)const;
+	Mat_ZZ	hom_add(Mat_ZZ &C1, Mat_ZZ &C2)const;
 
 	/*
 	@brief inmultire homomorfica a doua ciphertext-uri
 	C_add = Flatten(C1 * C2)
 	@param in C1, C2 - matricile de intrare
-	@param out C_mult - rezultatul inmultirii ciphertext-urilor
+	@return C_mult - rezultatul inmultirii ciphertext-urilor
 	*/
-	void hom_mult(Mat<ZZ> &C1, Mat<ZZ> &C2, Mat<ZZ> &C_mult)const;
+	Mat_ZZ	hom_mult(Mat_ZZ &C1, Mat_ZZ &C2)const;
 
 	/*
 	@brief intoarce dimensiunea unei matrici ciphertext l x l
@@ -130,11 +132,11 @@ public:
 	long get_l()const { return l; }
 
 	// TODO:
-	// void add_constant(Mat<ZZ> &C, int ct, Mat<ZZ> &C_add);
-	// void mult_constant(Mat<ZZ> &C, int ct, Mat<ZZ> &C_mult);
-	// void hom_NAND(Mat<ZZ> &C1, Mat<ZZ> &C2, Mat<ZZ> &C_nand);
-	// void boostrapp(Mat<ZZ> &C_noisy, Mat<ZZ> &C_bootstrapped);
-	// void refresh_scheme_settings(int new_lambda);
+	// Mat_ZZ	add_constant(Mat_ZZ &C, int ct);
+	// Mat_ZZ	mult_constant(Mat_ZZ &C, int ct);
+	// Mat_ZZ	hom_NAND(Mat_ZZ &C1, Mat_ZZ &C2);
+	// Mat_ZZ	boostrapp(Mat_ZZ &C_noisy);
+	// void		refresh_scheme_settings(int new_lambda);
 
 	~Flat_DGHV() {}
 };

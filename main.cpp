@@ -3,8 +3,19 @@
 #include "BatchGSW.h"
 #include <time.h>
 #include <assert.h>
+#include "Flat_DGHV.h"
 
-#define SEC_PARAM 72
+// TODO : IMPLEMENTAREA SCHEMEI PE BAZA NTL
+// DGHV securiy parameter
+// dupa Fully homomorphic encryption over the Integers with Shorter Public Key by Coron et.al
+// http://publications.uni.lu/bitstream/10993/12396/1/441.pdf
+// valoare acceptata pentru x_0 si enc_0 reprezentati ca long
+// #define SEC_PARAM 42		// toy 
+// #define SEC_PARAM 52		// small
+// #define SEC_PARAM 62		// medium 
+// #define SEC_PARAM 72		// large
+
+#define SEC_PARAM 6 
 #define NR_TESTE 100
 #define MULT_DEPTH 50
 
@@ -213,8 +224,8 @@ void test_DGHV_max_depth()
 {
 	cout << "Testing DGHV scheme max depth ...\n";
 	int lambda = SEC_PARAM;
-	int gamma = (int)pow(lambda, 3);	
-	int eta = (int)pow(lambda, 1.5);	
+	int gamma = (int)pow(lambda, 5);	
+	int eta = (int)pow(lambda, 3);	
 	int ro = lambda;
 	int ro_prim = 2 * lambda;
 	int tau = gamma + lambda;
@@ -227,7 +238,7 @@ void test_DGHV_max_depth()
 	ZZ c1 = encrypt_integer(pk, ZZ(1));
 	ZZ c2 = encrypt_integer(pk, ZZ(1));
 
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < 200; i++)
 	{
 		c1 = c1*c2;
 		ZZ miu = decrypt_ciphertext(c1, sk);
@@ -254,13 +265,12 @@ void clean_matrix(int **A, int l)
 
 void test_F_DGHV()
 {
-	cout << "\n\ntest F-DGHV\n\n";
-
-	// setare schema DGHV
+	cout << "\n\n\t\tTestare F-DGHV\n\n";
 	int **matrix_Collector = NULL;
+	// setare schema DGHV
 	int lambda = SEC_PARAM;
-	int gamma = (int)pow(lambda, 3);
-	int eta = (int)pow(lambda, 1.5);	
+	int gamma = (int)pow(lambda, 5);
+	int eta = (int)pow(lambda, 3);	
 	int ro = lambda;
 	int ro_prim = 2 * lambda;
 	int tau = gamma + lambda;
@@ -328,12 +338,13 @@ void test_F_DGHV()
 
 			dghv_ctxt = batchGSW.GSW_Decrypt(C1);
 
+			clean_matrix(matrix_Collector, l);
+
 			if (m_eval != ( dghv_ctxt % dghv_sk % 2 ) )
 			{
 				cout << "HE.Mult : eroare la iteratia " << i << endl;
+				break;
 			}
-
-			clean_matrix(matrix_Collector, l);
 		//}
 
 	}
@@ -446,8 +457,7 @@ void naive_gsw()
 {
 	cout << "\n\tTestare BATCHING pentru matrici GSW\n\n";
 
-	int **matrix_Collector = NULL;
-	int lambda = 4;
+	int lambda = SEC_PARAM;
 	int gamma = (int)pow(lambda, 3);	
 	int eta = (int)pow(lambda, 1.5);	
 	int ro = lambda;
@@ -469,74 +479,130 @@ void naive_gsw()
 
 	BatchGSW batchGSW(x_0, enc_0);
 
-	int **C_batch = NULL;
+	int **C1 = NULL;
+	int **C2 = NULL;
 	int l_batch = batchGSW.get_l();
-	int *v_message = new int[l_batch];
-	int *v_decript = NULL;
+
+	int *vec1 = new int[l_batch];
+	int *vec2 = new int[l_batch];
+	int *v_mult = NULL;
+
+	srand(time(NULL));
 	for (int i = 0; i < l_batch; i++)
 	{
-		v_message[i] = rand() % 2;
+		vec1[i] = rand() % 2;
+		vec2[i] = rand() % 2;
 	}
 
-	C_batch = batchGSW.batch_GSW_Enc(v_message);
+	C1 = batchGSW.batch_GSW_Enc(vec1);
+	C2 = batchGSW.batch_GSW_Enc(vec2);
 
-	v_decript = batchGSW.batch_GSW_Dec(C_batch);
-
-	bool batch_ok = true;
-	for (int i = 0; i < l_batch; i++)
+	for (int nr_test = 0; nr_test < NR_TESTE; nr_test++)
 	{
-		if (v_message[i] != v_decript[i])
+		// cleanup vec2
+		delete[] vec2;
+
+		// genereaza vec2 nou
+		vec2 = new int[l_batch];
+		for (int i = 0; i < l_batch; i++)
 		{
-			cout << "Eroare la batch\n";
-			batch_ok = false;
+			vec2[i] = rand() % 2;
+		}
+
+		int **Cp = C2;
+		// cripteaza noul vec2
+		C2 = batchGSW.batch_GSW_Enc(vec2);
+
+		// cleanup old C2
+		for (int i = 0; i < l_batch; i++)
+		{
+			delete[] Cp[i];
+		}
+		delete[] Cp;
+
+		// C1 = C1 * C2;		C1 = Flatten( C1 * C2 )
+		Cp = C1;
+		C1 = batchGSW.batch_Flatten_mod_x_0(
+			batchGSW.matrix_mult(C1, C2, l_batch), l_batch);
+
+		// cleanup old C1
+		for (int i = 0; i < l_batch; i++)
+		{
+			delete[] Cp[i];
+		}
+		delete[] Cp;
+
+		int *vp = v_mult;
+		v_mult = batchGSW.batch_GSW_Dec(C1);
+
+		//cleanup old v_mult
+		delete[] vp;
+
+		bool batch_ok = true;
+		for (int i = 0; i < 1; i++)
+		{
+			if ( ( ( vec1[i] * vec2[i]) % 2) != ( v_mult[i] % dghv_sk % 2))
+			{
+				cout << "Eroare la batch iteratia " << nr_test << ", slot- ul " << i << "\n";
+				batch_ok = false;
+				break;
+			}
+		}
+		if (batch_ok == true)
+		{
+			// cout << "Batch realizat cu SUCCES.\n";
+			for (int ii = 0; ii < l_batch; ii++)
+			{
+				vec1[ii] = v_mult[ii];
+			}
+		}
+		else
+		{
 			break;
 		}
-	}
-	if (batch_ok == true)
-	{
-		cout << "Batch realizat cu SUCCES.\n";
+
 	}
 
 	//cleanup batch
-	if (v_decript != NULL)
-		delete[] v_decript;
-	delete[] v_message;
+	if (v_mult != NULL)
+		delete[] v_mult;
+	delete[] vec1;
+	delete[] vec2;
 	for (int i = 0; i < l_batch; i++)
 	{
-		delete[] C_batch[i];
+		delete[] C1[i];
+		delete[] C2[i];
 	}
-	delete[] C_batch;
-
-	return;
-
-	// testare operatii F-DGHV
-	int **C1 = NULL;
-	int **C2 = NULL;
-	int l = batchGSW.get_l();
-	C1 = batchGSW.GSW_Encrypt(1);
-	C2 = batchGSW.GSW_Encrypt(1);
-
-	srand(time(NULL));
-	for (int i = 0; i < NR_TESTE; i++)
-	{
-		matrix_Collector = C1;
-
-		C1 = batchGSW.Flatten_mod_x_0(batchGSW.matrix_mult(C1, C2, l), l);
-		dghv_ctxt = batchGSW.GSW_Decrypt(C1);
-
-		clean_matrix(matrix_Collector, l);
-
-		if ( ( dghv_ctxt % dghv_sk % 2 ) != 1 )
-		{
-			cout << "MAX DEPTH GSW = " << i << "\n";
-			break;
-		}
-	}
-
-	clean_matrix(C1, l);
-	clean_matrix(C2, l);
+	delete[] C1;
+	delete[] C2;
 
 	cout << "Final - TEST BATCHING\n\n";
+}
+
+void test_Flat_DGHV()
+{
+	cout << "Testare Flat_DGHV ...\n\n";
+	int lambda = 4;
+	Flat_DGHV fdghv(lambda);
+
+	Mat_ZZ C;
+
+	for (int i = 0; i < NR_TESTE; i++)
+	{
+		int mesaj = rand() % 2;
+		C = fdghv.encrypt(mesaj);
+
+		if (mesaj == fdghv.decrypt(C))
+		{
+			// cout << "Succes\n";
+		}
+		else
+		{
+			cout << "Eroare i = "<<i<<endl;
+		}
+
+	}
+	cout << "Final test Flat_DGHV\n";
 }
 
 int main()
@@ -553,7 +619,9 @@ int main()
 
 	// test_gsw_depth();
 
-	naive_gsw();
+	// naive_gsw();
+
+	test_Flat_DGHV();
 }
 
 
