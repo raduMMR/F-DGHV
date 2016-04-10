@@ -3,14 +3,14 @@
 /*
 default values
 */
-int Params::gamma = 0;
-int Params::eta = 0;
-int Params::ro = 0;
-int Params::tau = 0;
-int Params::ro_prim = 0;
+ZZ Params::gamma(0); 
+ZZ Params::eta(0);
+ZZ Params::ro(0);
+ZZ Params::tau(0);
+ZZ Params::ro_prim(0);
 
 
-void Params::set_params(int g, int e, int r, int t, int rp)
+void Params::set_params(ZZ g, ZZ e, ZZ r, ZZ t, ZZ rp)
 {
 	gamma = g;
 	eta = e;

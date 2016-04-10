@@ -1,54 +1,57 @@
 #pragma once
+#include <NTL\ZZ.h>
+using namespace NTL;
+
 class Params
 {
 	/*
 	the bit length of the integers in the public key
 	*/
-	static int gamma; 
+	static ZZ gamma; 
 
 	/*
 	the bit length of the secret key
 	*/
-	static int eta;
+	static ZZ eta;
 
 	/*
 	the bit length of the noise
 	*/
-	static int ro;
-	static int ro_prim;
+	static ZZ ro;
+	static ZZ ro_prim;
 
 	/*
 	the integer number from public key
 	*/
-	static int tau;
+	static ZZ tau;
 
 public:
 	/*
 	if this method is not called, the parameters take default values
 	*/
-	static void set_params(int gamma, int eta, int ro, int tau, int ro_prim = 0);
+	static void set_params(ZZ gamma, ZZ eta, ZZ ro, ZZ tau, ZZ ro_prim);
 
-	static int getGamma()
+	static ZZ getGamma()
 	{
 		return gamma;
 	}
 
-	static int getEta()
+	static ZZ getEta()
 	{
 		return eta;
 	}
 
-	static int getRo()
+	static ZZ getRo()
 	{
 		return ro;
 	}
 
-	static int getRoPrim()
+	static ZZ getRoPrim()
 	{
 		return ro_prim;
 	}
 
-	static int getTau()
+	static ZZ getTau()
 	{
 		return tau;
 	}
