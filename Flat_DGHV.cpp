@@ -50,11 +50,11 @@ void Flat_DGHV::compute_FDGHV_settings()
 
 void Flat_DGHV::compute_DGHV_settings(int lambda)
 {
-	long ro = lambda;
-	long ro_prim = 2 * lambda;
-	long eta = lambda*lambda;
-	long gamma = pow(lambda, 4);
-	long tau = gamma + lambda;
+	long long ro = lambda;
+	long long ro_prim = 2 * lambda;
+	long long eta = lambda*lambda;
+	long long gamma = pow(lambda, 4);
+	long long tau = gamma + lambda;
 
 	Params::set_params(gamma, eta, ro, tau, ro_prim);
 
@@ -201,7 +201,11 @@ Mat_ZZ Flat_DGHV::hom_mult(Mat_ZZ &C1, Mat_ZZ &C2)const
 	ZZ z;
 	for (int i = 0; i < l; i++)
 	{
+		Vec_ZZ empty;
+		C_mult.push_back(empty);
+
 		C_mult[i].reserve(l);
+		
 		for (int j = 0; j < l; j++)
 		{
 			C_mult[i].push_back(ZZ(0));

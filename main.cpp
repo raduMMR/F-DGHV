@@ -4,6 +4,7 @@
 #include <time.h>
 #include <assert.h>
 #include "Flat_DGHV.h"
+#include <Windows.h>
 
 // TODO : IMPLEMENTAREA SCHEMEI PE BAZA NTL
 // DGHV securiy parameter
@@ -15,7 +16,7 @@
 // #define SEC_PARAM 62		// medium 
 // #define SEC_PARAM 72		// large
 
-#define SEC_PARAM 6 
+#define SEC_PARAM 30
 #define NR_TESTE 100
 #define MULT_DEPTH 50
 
@@ -238,7 +239,7 @@ void test_DGHV_max_depth()
 	ZZ c1 = encrypt_integer(pk, ZZ(1));
 	ZZ c2 = encrypt_integer(pk, ZZ(1));
 
-	for (int i = 0; i < 200; i++)
+	for (int i = 0; i < NR_TESTE; i++)
 	{
 		c1 = c1*c2;
 		ZZ miu = decrypt_ciphertext(c1, sk);
@@ -582,23 +583,39 @@ void naive_gsw()
 void test_Flat_DGHV()
 {
 	cout << "Testare Flat_DGHV ...\n\n";
-	int lambda = 4;
+	int lambda = SEC_PARAM;
 	Flat_DGHV fdghv(lambda);
 
-	Mat_ZZ C;
+	Mat_ZZ C1;
+	Mat_ZZ C2;
+	int m1;
+	int m2;
+
+	srand(time(NULL));
+	// m1 = rand() % 2;
+	m1 = 1;
+	C1 = fdghv.encrypt(m1);
+
+	m2 = 1;
+	C2 = fdghv.encrypt(m2);
 
 	for (int i = 0; i < NR_TESTE; i++)
 	{
-		int mesaj = rand() % 2;
-		C = fdghv.encrypt(mesaj);
+		// m2 = rand() % 2;
+		// C2 = fdghv.encrypt(m2);
 
-		if (mesaj == fdghv.decrypt(C))
+		C1 = fdghv.hom_mult(C1, C2);
+
+		if (fdghv.decrypt(C1) != 1 )
 		{
-			// cout << "Succes\n";
+			
+			cout << "Max mult depth FDGHV i = " << i << endl;
+			break;
 		}
 		else
 		{
-			cout << "Eroare i = "<<i<<endl;
+			m1 *= m2;
+			// cout << "Succes\n";
 		}
 
 	}
@@ -607,6 +624,12 @@ void test_Flat_DGHV()
 
 int main()
 {
+	LARGE_INTEGER start, finish, freq;
+	QueryPerformanceFrequency(&freq);
+	QueryPerformanceCounter(&start);
+
+	///
+
 	// test_DGHV_scheme();
 	
 	// test_gsw_scheme();
@@ -622,6 +645,13 @@ int main()
 	// naive_gsw();
 
 	test_Flat_DGHV();
+
+	////
+
+	QueryPerformanceCounter(&finish);
+	std::cout << "Timpul de executie : "
+		<< ((finish.QuadPart - start.QuadPart) / (double)freq.QuadPart) << std::endl;
+
 }
 
 
