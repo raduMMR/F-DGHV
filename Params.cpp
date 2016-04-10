@@ -3,14 +3,14 @@
 /*
 default values
 */
-ZZ Params::gamma(0); 
-ZZ Params::eta(0);
-ZZ Params::ro(0);
-ZZ Params::tau(0);
-ZZ Params::ro_prim(0);
+UL Params::gamma(0); 
+UL Params::eta(0);
+UL Params::ro(0);
+UL Params::tau(0);
+UL Params::ro_prim(0);
 
 
-void Params::set_params(ZZ g, ZZ e, ZZ r, ZZ t, ZZ rp)
+void Params::set_params(UL g, UL e, UL r, UL t, UL rp)
 {
 	gamma = g;
 	eta = e;
