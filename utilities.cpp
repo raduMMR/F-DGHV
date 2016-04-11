@@ -69,38 +69,52 @@ void generate_keys(ZZ &sk, vector<ZZ> &pk)
 
 	} while (sk % 2 != 1);
 
+	// ofstream out("gen.log", ios::out);
+
 	int tau = 0;
 	do
 	{
 		pk.clear();
 
-		// sample public key x_i's
-		tau = Params::getTau();
-		for (int i = 0; i < tau; i++)
+		try
 		{
-			ZZ x_i = sample_integer(sk);
-			// bool unique = true;
-
-			/*for (int i = 0; i < pk.size(); i++)
+			// sample public key x_i's
+			tau = Params::getTau();
+			for (int i = 0; i < tau; i++)
 			{
+				ZZ x_i = sample_integer(sk);
+				// bool unique = true;
+
+				/*for (int i = 0; i < pk.size(); i++)
+				{
 				if (pk[i] == x_i)
 				{
-					unique = false;
-					break;
+				unique = false;
+				break;
 				}
-			}
+				}
 
-			if (unique == false)
-			{
+				if (unique == false)
+				{
 				i--;
 				continue;
-			}
-			else
-			{*/
+				}
+				else
+				{*/
 				pk.push_back(x_i);
-			// }
+				//out << i << endl;
 
+				// }
+
+			}
 		}
+		catch (bad_alloc &ba)
+		{
+			cout << "bad alloc "<<ba.what()<<endl;
+		}
+
+		//out.close();
+		
 
 		// pune cel mai mare x pe prima pozitie
 		pk = ordonate_vector(pk, sk);
@@ -351,13 +365,13 @@ void test_symmentric_DGHV()
 
 
 // I/O
-void read_DGHV_param_from_file(vector<ZZ> &pk, ZZ &sk)
+void read_DGHV_keys_from_file(vector<ZZ> &pk, ZZ &sk)
 {
 	ifstream file("dghv_param.txt", ios::in);
 
 	file >> sk;
 
-	cout << "READ FC sk = " << sk << endl;
+	// cout << "READ FC sk = " << sk << endl;
 
 	long pk_size;
 	file >> pk_size;
@@ -372,7 +386,7 @@ void read_DGHV_param_from_file(vector<ZZ> &pk, ZZ &sk)
 	file.close();
 }
 
-void write_DGHV_params_in_file(vector<ZZ> &pk, ZZ &sk)
+void write_DGHV_keys_in_file(vector<ZZ> &pk, ZZ &sk)
 {
 	ofstream file("dghv_param.txt", ios::out);
 
@@ -387,15 +401,18 @@ void write_DGHV_params_in_file(vector<ZZ> &pk, ZZ &sk)
 
 // operatie = 0 READ
 // operatie = 1 WRITE
-void test_file_IO_DGHV_params(vector<ZZ> &pk, ZZ &sk, int operatie)
+void test_file_IO_DGHV_params(char *filename, UL* params, vector<ZZ> &pk, ZZ &sk, int operatie)
 {
-	if (operatie == 0)
-	{
-		write_DGHV_params_in_file(pk, sk);
-	}
-	else
-	{
-		read_DGHV_param_from_file(pk, sk);
+	//if (operatie == 0)
+	//{
+		write_DGHV_params_in_file(filename, params, pk, sk);
+
+		cout << "lambda = " << params[0] << endl;
+		cout << "gamma = " << params[1] << endl;
+		cout << "eta = " << params[2] << endl;
+		cout << "ro = " << params[3] << endl;
+		cout << "tau = " << params[4] << endl;
+		cout << "ro_prim = " << params[5] << endl;
 
 		cout << "sk = " << sk << endl;
 		cout << "pk.size = " << pk.size() << endl;
@@ -404,6 +421,80 @@ void test_file_IO_DGHV_params(vector<ZZ> &pk, ZZ &sk, int operatie)
 			cout << pk[i] << " ";
 		}
 
-		cout << "\n\nTestare citire incheiata\n";
+		cout << "\n\nScriere incheiata.\n";
+	//}
+	//else
+	//{
+		pk.clear();
+
+		read_DGHV_params_from_file(filename, params, pk, sk);
+
+		cout << "lambda = " << params[0] << endl;
+		cout << "gamma = " << params[1] << endl;
+		cout << "eta = " << params[2] << endl;
+		cout << "ro = " << params[3] << endl;
+		cout << "tau = " << params[4] << endl;
+		cout << "ro_prim = " << params[5] << endl;
+
+		cout << "sk = " << sk << endl;
+		cout << "pk.size = " << pk.size() << endl;
+		for (int i = 0; i < pk.size(); i++)
+		{
+			cout << pk[i] << " ";
+		}
+
+		cout << "\n\nCitire incheiata\n";
+	//}
+}
+
+// I/O
+void read_DGHV_params_from_file(char *filename, UL* params, vector<ZZ> &pk, ZZ &sk)
+{
+	// params [0] , [1],   [2], [3],  [4], [5]
+	//	  lambda,  gamma,  eta, ro ,  tau, ro_prim
+	// ifstream file("dghv_param.txt", ios::in);
+	ifstream file(filename, ios::in);
+
+	for (int i = 0; i < 6; i++)
+	{
+		file >> params[i];
 	}
+
+	file >> sk;
+
+	long pk_size;
+	file >> pk_size;
+	pk.reserve(pk_size);
+	ZZ elem;
+	for (int i = 0; i < pk_size; i++)
+	{
+		file >> elem;
+		pk.push_back(elem);
+	}
+
+	file.close();
+}
+
+void write_DGHV_params_in_file(char *filename, UL* params, vector<ZZ> &pk, ZZ &sk)
+{
+	// params [0] , [1],   [2], [3],  [4], [5]
+	//	  lambda,  gamma,  eta, ro ,  tau, ro_prim
+	// ofstream file("dghv_param.txt", ios::out);
+	ofstream file(filename, ios::out);
+
+	for (int i = 0; i < 6; i++)
+	{
+		file << params[i] << endl;
+	}
+
+	file << sk << endl;
+
+	file << pk.size() << endl;
+	for (int i = 0; i < pk.size(); i++)
+	{
+		file << pk[i] << " ";
+	}
+
+	file.flush();
+	file.close();
 }

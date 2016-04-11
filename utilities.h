@@ -60,8 +60,22 @@ vector<int> choose_random_subset();
 */
 void test_symmentric_DGHV();
 
+
+
 /*
 @brief citire/scriere chei secrete si publice in si din fisier
 */
-void read_DGHV_param_from_file(vector<ZZ> &pk, ZZ &sk);
-void write_DGHV_params_in_file(vector<ZZ> &pk, ZZ &sk);
+void read_DGHV_keys_from_file(vector<ZZ> &pk, ZZ &sk);
+void write_DGHV_keys_in_file(vector<ZZ> &pk, ZZ &sk);
+
+void test_file_IO_DGHV_params(char *filename, UL* params, vector<ZZ> &pk, ZZ &sk, int operatie);
+
+/*
+@brief citeste parametrii schemei DGHV din fisier
+@param filename - numele fisierului sursa
+@param params - parametrii schemei DGHV - lambda, gamma, eta, ro, tau, ro_prim
+@params pk - cheia publica DGHV, vectorul de intregi x_i, cu x_0 cel mai mare dintre ei
+@param sk - cheia secreta DGHV, intregul p
+*/
+void read_DGHV_params_from_file(char *filename, UL* params, vector<ZZ> &pk, ZZ &sk);
+void write_DGHV_params_in_file(char *filename, UL* params, vector<ZZ> &pk, ZZ &sk);
