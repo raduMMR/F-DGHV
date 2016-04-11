@@ -65,6 +65,8 @@ class Flat_DGHV
 		schemei DGHV : x_0, sk_DGHV, l - dimensiunea unei matrici ciphertext
 		aceste valori depind se parametrul de securitate lambda
 	*/
+	void	compute_DGHV_settings(char *filename, int lambda);
+
 	void	compute_DGHV_settings(int lambda);
 
 	void	compute_FDGHV_settings();
@@ -88,13 +90,15 @@ public:
 				62 - medium
 				72 - good
 	*/
-	Flat_DGHV(int lambda);
+	Flat_DGHV(char *filename, int lambda);
 
 	/*
 	@brief constructor in care sunt incarcate dintr-un fisier text 
 		setarile generate la o rulare anterioara
 	*/
-	Flat_DGHV::Flat_DGHV();
+	Flat_DGHV::Flat_DGHV(char *filename);
+
+	Flat_DGHV::Flat_DGHV(int lambda);
 
 	/*
 	@brief criptare a unui mesaj intreg cu schema Flat_DGHV
@@ -134,10 +138,19 @@ public:
 	// TODO:
 	// Mat_ZZ	add_constant(Mat_ZZ &C, int ct);
 	// Mat_ZZ	mult_constant(Mat_ZZ &C, int ct);
-	// Mat_ZZ	hom_NAND(Mat_ZZ &C1, Mat_ZZ &C2);
+	// Mat_ZZ	hom_NAND(Mat_ZZ &C1, Mat_Z   Z &C2);
 	// Mat_ZZ	boostrapp(Mat_ZZ &C_noisy);
 	// void		refresh_scheme_settings(int new_lambda);
 
 	~Flat_DGHV() {}
+
+
+	/*
+	@brief multiplicare a matricilor optimizata
+		BitDecomp_1( BitDecomp(C1) * BitDecomp(C2) ) = BitDecomp(C1) * C2
+	*/
+	Mat_ZZ	hom_mult_opt(Mat_ZZ &C1, Mat_ZZ &C2)const;
+
+
 };
 

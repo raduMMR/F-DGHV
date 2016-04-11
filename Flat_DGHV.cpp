@@ -3,18 +3,71 @@
 #include "utilities.h"
 #include <assert.h>
 
-Flat_DGHV::Flat_DGHV()
+Flat_DGHV::Flat_DGHV(int lambda)
 {
-	read_DGHV_param_from_file(pk_DGHV, sk_DGHV);
+	compute_DGHV_settings(lambda);
+	compute_FDGHV_settings();
 }
 
-Flat_DGHV::Flat_DGHV(int lambda)
+Flat_DGHV::Flat_DGHV(char *filename)
+{
+	UL params[6];
+
+	read_DGHV_params_from_file(filename, params, pk_DGHV, sk_DGHV);
+
+	// Params::set_params(gamma, eta, ro, tau, ro_prim);
+	Params::set_params(params[1], params[2], params[3], params[4], params[5]);
+
+	compute_FDGHV_settings();
+}
+
+Flat_DGHV::Flat_DGHV(char *filename, int lambda)
 {
 	// this->lambda = lambda;
 
-	compute_DGHV_settings(lambda);
+	compute_DGHV_settings(filename, lambda);
 
 	compute_FDGHV_settings();
+}
+
+void Flat_DGHV::compute_DGHV_settings(char *filename, int lambda)
+{
+	/*UL gamma = pow(lambda, 4);
+	UL eta = lambda*lambda;
+	UL ro = lambda;
+	UL tau = gamma + lambda;
+	UL ro_prim = 2 * lambda;
+
+	Params::set_params(gamma, eta, ro, tau, ro_prim);
+
+	generate_keys(sk_DGHV, pk_DGHV);
+	assert(pk_DGHV.size() != 0);*/
+
+	compute_DGHV_settings(lambda);
+
+	UL params[6];
+	params[0] = lambda;
+	params[1] = Params::getGamma();
+	params[2] = Params::getEta();
+	params[3] = Params::getRo();
+	params[4] = Params::getTau();
+	params[5] = Params::getRoPrim();
+
+	write_DGHV_params_in_file(filename, params, pk_DGHV, sk_DGHV);
+}
+
+void Flat_DGHV::compute_DGHV_settings(int lambda)
+{
+	UL gamma = pow(lambda, 4);
+	UL eta = lambda*lambda;
+	UL ro = lambda;
+	UL tau = gamma + lambda;
+	UL ro_prim = 2 * lambda;
+
+	Params::set_params(gamma, eta, ro, tau, ro_prim);
+
+	generate_keys(sk_DGHV, pk_DGHV);
+	assert(pk_DGHV.size() != 0);
 }
 
 void Flat_DGHV::compute_FDGHV_settings()
@@ -44,25 +97,10 @@ void Flat_DGHV::compute_FDGHV_settings()
 		// o criptare noua pentru fiecare linie a matricii C_prim
 		Vec_ZZ empty;
 		C_prim.push_back(empty);
+
+		// pentru fiecare linie avem o criptare a lui zero diferita
 		C_prim[i].push_back(encrypt_DGHV(0));
 	}
-}
-
-void Flat_DGHV::compute_DGHV_settings(int lambda)
-{
-	long long ro = lambda;
-	long long ro_prim = 2 * lambda;
-	long long eta = lambda*lambda;
-	long long gamma = pow(lambda, 4);
-	long long tau = gamma + lambda;
-
-	Params::set_params(gamma, eta, ro, tau, ro_prim);
-
-	generate_keys(sk_DGHV, pk_DGHV);
-
-	write_DGHV_params_in_file(pk_DGHV, sk_DGHV);
-
-	assert(pk_DGHV.size() != 0);
 }
 
 ZZ	Flat_DGHV::encrypt_DGHV(int message)const
@@ -219,3 +257,38 @@ Mat_ZZ Flat_DGHV::hom_mult(Mat_ZZ &C1, Mat_ZZ &C2)const
 	return flatten(C_mult);
 }
 
+Mat_ZZ Flat_DGHV::hom_mult_opt(Mat_ZZ &C1, Mat_ZZ &C2)const
+{
+	assert(C1.size() == C2.size());
+	assert(C1.size() == l);
+	assert(C1[0].size() == l);
+
+	Mat_ZZ C_mult;
+	C_mult.reserve(l);
+
+	Mat_ZZ C1_prim;
+	C1_prim.reserve(l);
+	for (int i = 0; i < l; i++)
+	{
+		Vec_ZZ vec = bitdecomp_1(C1[i]);
+		C1_prim.push_back(vec);
+	}
+
+	ZZ z;
+	for (int i = 0; i < l; i++)
+	{
+		ZZ elem(0);
+		
+		for (int j = 0; j < l; j++)
+		{
+			elem += C2[i][j] * C1[j][0];
+		}
+
+		Vec_ZZ linie;
+		linie.push_back(elem);
+		linie = bitdecomp(linie);
+		C_mult.push_back(linie);
+	}
+
+	return (C_mult);
+}
